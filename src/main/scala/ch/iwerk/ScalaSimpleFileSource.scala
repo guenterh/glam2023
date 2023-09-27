@@ -1,9 +1,9 @@
 package ch.iwerk
 
-import ch.iwerk.events.{Audio, Parc, Photo, Rietberg}
-import ch.iwerk.serializer.ParcSerializer
+import ch.iwerk.events.{ArchiveIndex, Audio, Parc, Photo, Rietberg}
+import ch.iwerk.serializer.{ArchiveIndexSerializer, AudioSerializer, ParcSerializer, PhotoSerializer, RietbergSerializer}
 import ch.iwerk.sink.{CustomKafkaStringSinkBuilder, GenericCustomSinkBuilder}
-import com.immerok.cookbook.events.{ArchiveIndex, Glam}
+import com.immerok.cookbook.events.Glam
 import org.apache.flink.api._
 import org.apache.flink.api.common.RuntimeExecutionMode
 import org.apache.flink.api.common.eventtime.WatermarkStrategy
@@ -247,15 +247,19 @@ object ScalaSimpleFileSource {
       })
 
 
-    dsAudio.sinkTo(new PrintSink[Audio]())
+    //dsAudio.sinkTo(new PrintSink[Audio]())
     //dSPhoto.sinkTo(new PrintSink[Photo]())
 
     //dsRietberg.sinkTo(new PrintSink[Rietberg]())
     //dsParc.sinkTo(CustomKafkaSinkBuilder.apply("parc"))
-    //dsParc.sinkTo(GenericCustomSinkBuilder("parc_typed")(() => new ParcSerializer))
-    dsArchiveIndex.sinkTo(new PrintSink[ArchiveIndex]())
+    dsParc.sinkTo(GenericCustomSinkBuilder("parc_typed")(() => new ParcSerializer))
+    //dsArchiveIndex.sinkTo(new PrintSink[ArchiveIndex]())
+    dsArchiveIndex.sinkTo(GenericCustomSinkBuilder("archive_index_typed")(() => new ArchiveIndexSerializer))
+    dsRietberg.sinkTo(GenericCustomSinkBuilder("rietberg_typed")(() => new RietbergSerializer))
+    dsAudio.sinkTo(GenericCustomSinkBuilder("audio_typed")(() => new AudioSerializer))
+    dSPhoto.sinkTo(GenericCustomSinkBuilder("photo_typed")(() => new PhotoSerializer))
 
-    dsParc.sinkTo(new PrintSink[Parc]())
+    //dsParc.sinkTo(new PrintSink[Parc]())
     //dsRietberg.sinkTo(new PrintSink[Rietberg]())
 
 
