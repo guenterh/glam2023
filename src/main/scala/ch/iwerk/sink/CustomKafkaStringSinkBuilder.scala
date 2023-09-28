@@ -22,9 +22,9 @@ object CustomKafkaStringSinkBuilder {
 
 
       val  sink = KafkaSink.builder[String]()
-        .setBootstrapServers ("localhost:9092")
+        .setBootstrapServers ("localhost:9092;localhost:9093;localhost:9094")
         .setDeliveryGuarantee (DeliveryGuarantee.AT_LEAST_ONCE)
-        .setTransactionalIdPrefix ("KafkaExactlyOnce")
+        .setTransactionalIdPrefix ("StringSinkBuilder")
         .setKafkaProducerConfig (producerProperties)
         .setRecordSerializer (serializer)
         .build()

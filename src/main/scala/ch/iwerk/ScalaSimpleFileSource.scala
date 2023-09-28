@@ -1,6 +1,6 @@
 package ch.iwerk
 
-import ch.iwerk.events.{ArchiveIndex, Audio, Parc, Photo, Rietberg}
+import ch.iwerk.events.{ArchiveIndex, Audio, Parc, Photo, Rietberg, ZBReiseberichte}
 import ch.iwerk.serializer.{ArchiveIndexSerializer, AudioSerializer, ParcSerializer, PhotoSerializer, RietbergSerializer}
 import ch.iwerk.sink.{CustomKafkaStringSinkBuilder, GenericCustomSinkBuilder}
 import com.immerok.cookbook.events.Glam
@@ -44,6 +44,7 @@ object ScalaSimpleFileSource {
   implicit val rietBergSerializer: TypeInformation[Rietberg] = TypeInformation.of(classOf[Rietberg])
   implicit val parcSerializer: TypeInformation[Parc] = TypeInformation.of(classOf[Parc])
   implicit val archiveIndexSerializer: TypeInformation[ArchiveIndex] = TypeInformation.of(classOf[ArchiveIndex])
+  implicit val zbReiseBerichteSerializer: TypeInformation[ZBReiseberichte] = TypeInformation.of(classOf[ZBReiseberichte])
 
   implicit val stringSerializer: TypeInformation[String] = TypeInformation.of(classOf[String])
 
@@ -57,6 +58,8 @@ object ScalaSimpleFileSource {
     val rietbergDataDirectory = new Path("/home/swissbib/environment/code/repositories/guenterh/glam/2023genf/rietberg/objects")
     val parcDataDirectory = new Path("/home/swissbib/environment/code/repositories/guenterh/glam/2023genf/parc/metadata/jsononeline")
     val archiveIndexDataDirectory = new Path("/home/swissbib/environment/code/repositories/guenterh/glam/2023genf/archive_de_geneve/index_letters/index")
+    val zbReisebereichte = new Path("/home/swissbib/environment/code/repositories/guenterh/glam/2023genf/zb/reiseberichte/one_line")
+
 
     val sourcePhoto: FileSource [String]  =
       FileSource.forRecordStreamFormat(new TextLineInputFormat, photoDataDirectory)
@@ -109,10 +112,11 @@ object ScalaSimpleFileSource {
           g
 
       }
+      .map[String](_.toString)
 
     //dSPhoto.sinkTo(new PrintSink[Photo]())
 
-    val dsAudio: DataStream[Audio] = env.fromSource(sourceAudio, WatermarkStrategy.noWatermarks(), "Audio")
+    val dsAudio = env.fromSource(sourceAudio, WatermarkStrategy.noWatermarks(), "Audio")
       .flatMap ((str: String, out: Collector[Audio]) => {
           val splits = str.split("\t")
 
@@ -153,6 +157,7 @@ object ScalaSimpleFileSource {
 
 
       })
+      .map((audio: Audio) => audio.toString)
 
     val sourceRietberg: FileSource[String] =
       FileSource.forRecordStreamFormat(new TextLineInputFormat, rietbergDataDirectory)
@@ -191,7 +196,7 @@ object ScalaSimpleFileSource {
           }
         }
       })
-      //.sinkTo(new PrintSink[Rietberg]())
+      .map((rietberg: Rietberg) => rietberg.toString)
 
 
     val sourceParc: FileSource[String] =
@@ -200,6 +205,7 @@ object ScalaSimpleFileSource {
 
     val dsParc = env.fromSource(sourceParc, WatermarkStrategy.noWatermarks(), "Parc")
       .flatMap((str: String, out: Collector[Parc]) => out.collect(Parc(str)))
+      .map((parc:Parc) => parc.toString)
 
 
     val sourceArchiveIndex: FileSource[String] =
@@ -245,6 +251,16 @@ object ScalaSimpleFileSource {
 
           out.collect(ArchiveIndex(str))
       })
+      .map((archive_index: ArchiveIndex) => archive_index.toString)
+
+
+    val sourceZBReiseberichte: FileSource[String] =
+      FileSource.forRecordStreamFormat(new TextLineInputFormat, zbReisebereichte)
+        .build()
+
+    val dsZBReiseberichte = env.fromSource(sourceZBReiseberichte, WatermarkStrategy.noWatermarks(), "Parc")
+      .flatMap((str: String, out: Collector[ZBReiseberichte]) => out.collect(ZBReiseberichte(str)))
+      .map((parc: ZBReiseberichte) => parc.toString)
 
 
     //dsAudio.sinkTo(new PrintSink[Audio]())
@@ -252,16 +268,21 @@ object ScalaSimpleFileSource {
 
     //dsRietberg.sinkTo(new PrintSink[Rietberg]())
     //dsParc.sinkTo(CustomKafkaSinkBuilder.apply("parc"))
-    dsParc.sinkTo(GenericCustomSinkBuilder("parc_typed")(() => new ParcSerializer))
     //dsArchiveIndex.sinkTo(new PrintSink[ArchiveIndex]())
-    dsArchiveIndex.sinkTo(GenericCustomSinkBuilder("archive_index_typed")(() => new ArchiveIndexSerializer))
-    dsRietberg.sinkTo(GenericCustomSinkBuilder("rietberg_typed")(() => new RietbergSerializer))
-    dsAudio.sinkTo(GenericCustomSinkBuilder("audio_typed")(() => new AudioSerializer))
-    dSPhoto.sinkTo(GenericCustomSinkBuilder("photo_typed")(() => new PhotoSerializer))
+    //dsParc.sinkTo(GenericCustomSinkBuilder("parc_typed")(() => new ParcSerializer))
+    //dsArchiveIndex.sinkTo(GenericCustomSinkBuilder("archive_index_typed")(() => new ArchiveIndexSerializer))
+    //dsRietberg.sinkTo(GenericCustomSinkBuilder("rietberg_typed")(() => new RietbergSerializer))
+    //dsAudio.sinkTo(GenericCustomSinkBuilder("audio_typed")(() => new AudioSerializer))
+    //dSPhoto.sinkTo(GenericCustomSinkBuilder("photo_typed")(() => new PhotoSerializer))
 
-    //dsParc.sinkTo(new PrintSink[Parc]())
-    //dsRietberg.sinkTo(new PrintSink[Rietberg]())
-
+    /*
+    dsParc.sinkTo(CustomKafkaStringSinkBuilder("parc"))
+    dsArchiveIndex.sinkTo(CustomKafkaStringSinkBuilder("archive_index"))
+    dsRietberg.sinkTo(CustomKafkaStringSinkBuilder("rietberg"))
+    dsAudio.sinkTo(CustomKafkaStringSinkBuilder("audio"))
+    dSPhoto.sinkTo(CustomKafkaStringSinkBuilder("photo"))
+    */
+    dsZBReiseberichte.sinkTo(CustomKafkaStringSinkBuilder("zbreiseberichte"))
 
     env.execute()
 

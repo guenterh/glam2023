@@ -28,3 +28,15 @@ case class Photo(
   planche: String,
   fusion: String
                    )
+{
+  import Photo._
+
+  override def toString: String =
+    upickle.default.write(this)
+}
+
+
+
+object Photo {
+  implicit val photoRW: upickle.default.ReadWriter[Photo] = upickle.default.macroRW
+}
